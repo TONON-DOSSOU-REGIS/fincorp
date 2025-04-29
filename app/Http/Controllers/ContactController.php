@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\ContactFormMail;
+use App\Models\LoanRequest;
 
 class ContactController extends Controller
 {
@@ -23,10 +24,15 @@ class ContactController extends Controller
             'loan_duration' => 'required|numeric',
             'message' => 'required|string|max:1000',
         ]);
+         // Sauvegarde dans la base de données
+         $loan = LoanRequest::create($request->all());
 
-        $data = $request->all();
-
-        Mail::to('tononregis67@gmail.com')->send(new ContactFormMail($data));
+        
+        // Envoi de l'email
+        Mail::send('emails.loan', ['loan' => $loan], function ($message) use ($loan) {
+            $message->to('tononregis67@gmail.com')
+                    ->subject('Nouvelle demande de prêt de ' . $loan->name);
+        });
 
         return redirect()->route('contact')->with('success', 'Votre message a été envoyé avec succès. Nous vous contacterons bientôt.');
     }

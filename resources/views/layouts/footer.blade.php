@@ -11,7 +11,7 @@
                     <a href="#" class="text-decoration-none"><i class="fab fa-instagram"></i></a>
                 </div>
             </div>
-            <div class="col-lg-2 col-md-4">
+            <div class="col-lg-2 col-md-4 text-amber-50">
                 <h5 class="mb-4">Liens rapides</h5>
                 <ul class="list-unstyled">
                     <li class="mb-2"><a href="{{ route('home') }}" class="text-decoration-none">Accueil</a></li>
@@ -24,7 +24,7 @@
             <div class="col-lg-3 col-md-4">
                 <h5 class="mb-4">Services</h5>
                 <ul class="list-unstyled">
-                    <li class="mb-2"><a href="#" class="text-decoration-none">Prêts immobiliers</a></li>
+                    <li class="mb-2"><a href="#" class="text-decoration-none text-teal-50">Prêts immobiliers</a></li>
                     <li class="mb-2"><a href="#" class="text-decoration-none">Prêts personnels</a></li>
                     <li class="mb-2"><a href="#" class="text-decoration-none">Crédits auto/moto</a></li>
                     <li class="mb-2"><a href="#" class="text-decoration-none">Prêts professionnels</a></li>

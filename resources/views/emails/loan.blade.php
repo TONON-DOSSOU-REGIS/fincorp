@@ -23,30 +23,30 @@
             
             <div class="details">
                 <div class="detail">
-                    <span class="detail-label">Nom :</span> {{ $data['name'] }}
+                    <span class="detail-label">Nom :</span> {{ $loan['name'] }}
                 </div>
                 <div class="detail">
-                    <span class="detail-label">Email :</span> {{ $data['email'] }}
+                    <span class="detail-label">Email :</span> {{ $loan['email'] }}
                 </div>
                 <div class="detail">
-                    <span class="detail-label">Téléphone :</span> {{ $data['phone'] }}
+                    <span class="detail-label">Téléphone :</span> {{ $loan['phone'] }}
                 </div>
                 <div class="detail">
-                    <span class="detail-label">Sujet :</span> {{ $data['subject'] ?? 'Non spécifié' }}
+                    <span class="detail-label">Sujet :</span> {{ $loan['subject'] ?? 'Non spécifié' }}
                 </div>
-                @if(isset($data['loan_amount']))
+                @if(isset($loan['loan_amount']))
                 <div class="detail">
-                    <span class="detail-label">Montant souhaité :</span> {{ number_format($data['loan_amount'], 0, ',', ' ') }} €
+                    <span class="detail-label">Montant souhaité :</span> {{ number_format($loan['loan_amount'], 0, ',', ' ') }} €
                 </div>
                 @endif
-                @if(isset($data['loan_duration']))
+                @if(isset($loan['loan_duration']))
                 <div class="detail">
-                    <span class="detail-label">Durée souhaitée :</span> {{ $data['loan_duration'] }} ans
+                    <span class="detail-label">Durée souhaitée :</span> {{ $loan['loan_duration'] }} ans
                 </div>
                 @endif
                 <div class="detail">
                     <span class="detail-label">Message :</span>
-                    <p>{{ $data['message'] }}</p>
+                    <p>{{ $loan['message'] }}</p>
                 </div>
             </div>
         </div>
