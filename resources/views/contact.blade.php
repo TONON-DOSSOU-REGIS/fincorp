@@ -113,7 +113,7 @@
                         <i class="fas fa-envelope fa-2x"></i>
                     </div>
                     <h5 class="mb-3">Email</h5>
-                    <p>contact@fincorp.fr<br>support@fincorp.fr</p>
+                    <p>contact@fincorpfinance.fr<br>support@fincorpfinance.fr</p>
                 </div>
             </div>
         </div>

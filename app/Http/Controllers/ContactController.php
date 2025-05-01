@@ -30,7 +30,7 @@ class ContactController extends Controller
         
         // Envoi de l'email
         Mail::send('emails.loan', ['loan' => $loan], function ($message) use ($loan) {
-            $message->to('tononregis67@gmail.com')
+            $message->to('contact@fincorpfinance.fr')
                     ->subject('Nouvelle demande de prêt de ' . $loan->name);
         });
 

@@ -16,9 +16,15 @@ class LoanController extends Controller
                 'professional' => 'Prêt professionnel',
                 'student' => 'Prêt étudiant'
             ],
-            'defaultAmount' => 10000,
-            'defaultDuration' => 5, // Réduit à 5 ans par défaut (plus réaliste)
-            'defaultRate' => 3.5
+            'defaultAmount' => 20000,
+            'defaultDuration' => 7,
+            'defaultRate' => 4.5,
+            'minAmount' => 1000,
+            'maxAmount' => 1000000,
+            'minDuration' => 1,
+            'maxDuration' => 30,
+            'minRate' => 0.1,
+            'maxRate' => 20
         ];
 
         return view('loan-simulator', $defaultValues);
@@ -26,42 +32,81 @@ class LoanController extends Controller
 
     public function calculate(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'amount' => 'required|numeric|min:1000|max:1000000',
             'duration' => 'required|numeric|min:1|max:30',
             'interest_rate' => 'required|numeric|min:0.1|max:20',
             'loan_type' => 'sometimes|string'
         ]);
 
-        $amount = (float)$request->amount;
-        $duration = (int)$request->duration;
-        $interestRate = (float)$request->interest_rate;
-        $loanType = $request->loan_type ?? 'personal';
+        $amount = (float)$validated['amount'];
+        $duration = (int)$validated['duration'];
+        $annualRate = (float)$validated['interest_rate'];
+        $loanType = $validated['loan_type'] ?? 'personal';
 
-        // Ajustement du taux selon le type de prêt (optionnel)
-        switch ($loanType) {
-            case 'mortgage':
-                $interestRate = min($interestRate, 6); // Taux max pour immo
-                break;
-            case 'auto':
-                $interestRate = min($interestRate, 8); // Taux max pour auto
-                break;
-        }
+        // Ajustement des taux selon le type de prêt
+        $rateInfo = $this->getRateInfo($loanType, $annualRate);
+        $annualRate = $rateInfo['rate'];
+        $insuranceRate = $rateInfo['insurance'];
 
-        $monthlyRate = $interestRate / 100 / 12;
+        $monthlyRate = $annualRate / 100 / 12;
+        $monthlyInsurance = ($amount * $insuranceRate) / 12 / 100;
         $term = $duration * 12;
 
-        // Calcul de la mensualité
+        // Calcul de la mensualité hors assurance
         if ($monthlyRate == 0) {
             $monthlyPayment = $amount / $term;
         } else {
             $monthlyPayment = ($amount * $monthlyRate) / (1 - pow(1 + $monthlyRate, -$term));
         }
 
-        $totalPayment = $monthlyPayment * $term;
-        $totalInterest = $totalPayment - $amount;
+        // Ajout de l'assurance
+        $totalMonthlyPayment = $monthlyPayment + $monthlyInsurance;
+        $totalPayment = $totalMonthlyPayment * $term;
+        $totalInterest = ($monthlyPayment * $term) - $amount;
+        $totalInsurance = $monthlyInsurance * $term;
 
-        // Génération du tableau d'amortissement simplifié
+        // Génération du tableau d'amortissement complet
+        $amortization = $this->generateAmortizationTable($amount, $term, $monthlyRate, $monthlyPayment, $monthlyInsurance);
+
+        return response()->json([
+            'success' => true,
+            'loan_type' => $loanType,
+            'amount' => $amount,
+            'duration' => $duration,
+            'annual_rate' => $annualRate,
+            'insurance_rate' => $insuranceRate,
+            'monthly_payment' => round($totalMonthlyPayment, 2),
+            'monthly_payment_without_insurance' => round($monthlyPayment, 2),
+            'monthly_insurance' => round($monthlyInsurance, 2),
+            'total_interest' => round($totalInterest, 2),
+            'total_insurance' => round($totalInsurance, 2),
+            'total_payment' => round($totalPayment, 2),
+            'amortization' => $amortization,
+            'term' => $term
+        ]);
+    }
+
+    private function getRateInfo($loanType, $requestedRate)
+    {
+        $defaultRates = [
+            'personal' => ['min' => 2, 'max' => 10, 'insurance' => 0.3],
+            'mortgage' => ['min' => 1.5, 'max' => 6, 'insurance' => 0.2],
+            'auto' => ['min' => 1, 'max' => 8, 'insurance' => 0.5],
+            'professional' => ['min' => 2.5, 'max' => 12, 'insurance' => 0.4],
+            'student' => ['min' => 1, 'max' => 5, 'insurance' => 0.1]
+        ];
+
+        $config = $defaultRates[$loanType] ?? $defaultRates['personal'];
+        
+        return [
+            'rate' => min(max($requestedRate, $config['min']), $config['max']),
+            'insurance' => $config['insurance']
+        ];
+    }
+
+    private function generateAmortizationTable($amount, $term, $monthlyRate, $monthlyPayment, $monthlyInsurance)
+    {
         $amortization = [];
         $balance = $amount;
 
@@ -70,29 +115,27 @@ class LoanController extends Controller
             $principal = $monthlyPayment - $interest;
             $balance -= $principal;
 
-            if ($balance < 0) $balance = 0;
+            if ($balance < 0) {
+                $balance = 0;
+                $principal += $balance; // Ajustement du principal pour le dernier paiement
+            }
 
-            // On garde les 6 premiers mois, le milieu et les 6 derniers
-            if ($month <= 6 || 
-                $month >= $term - 6 || 
-                ($term > 12 && $month == floor($term / 2))) {
+            // On garde les 12 premiers mois, puis un échantillonnage
+            if ($month <= 12 || 
+                $month % 12 == 0 || 
+                $month >= $term - 12 || 
+                ($term > 60 && $month % 6 == 0)) {
                 $amortization[] = [
                     'month' => $month,
-                    'balance' => $balance,
+                    'balance' => max(0, $balance),
                     'interest' => $interest,
                     'principal' => $principal,
-                    'payment' => $monthlyPayment
+                    'insurance' => $monthlyInsurance,
+                    'payment' => $monthlyPayment + $monthlyInsurance
                 ];
             }
         }
 
-        return response()->json([
-            'success' => true,
-            'monthly_payment' => round($monthlyPayment, 2),
-            'total_interest' => round($totalInterest, 2),
-            'total_payment' => round($totalPayment, 2),
-            'amortization' => $amortization,
-            'term' => $term
-        ]);
+        return $amortization;
     }
 }

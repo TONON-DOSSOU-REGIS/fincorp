@@ -22,7 +22,7 @@ class ContactFormMail extends Mailable
 
     public function build()
     {
-        return $this->to('tononregis67@gmail.com')
+        return $this->to('contact@fincorpfinance.fr')
                    ->subject('Nouvelle demande de contact - FinCorp')
                    ->view('emails.contact-form')
                    ->with(['data' => $this->data]);

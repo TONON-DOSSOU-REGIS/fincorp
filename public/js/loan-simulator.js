@@ -14,49 +14,100 @@ document.addEventListener('DOMContentLoaded', function() {
     const durationInput = document.getElementById('loanDuration');
     const rateRange = document.getElementById('interestRateRange');
     const rateInput = document.getElementById('interestRate');
+    const loanTypeSelect = document.getElementById('loanType');
+    
+    // Valeurs limites
+    const minAmount = parseInt(amountRange.min) || 1000;
+    const maxAmount = parseInt(amountRange.max) || 1000000;
+    const minDuration = parseInt(durationRange.min) || 1;
+    const maxDuration = parseInt(durationRange.max) || 30;
+    const minRate = parseFloat(rateRange.min) || 0.1;
+    const maxRate = parseFloat(rateRange.max) || 20;
+    
+    // Formatage des valeurs des sliders
+    function formatSliderValue(value, type) {
+        if (type === 'amount') {
+            return new Intl.NumberFormat('fr-FR').format(value) + ' €';
+        } else if (type === 'duration') {
+            return value + ' an' + (value > 1 ? 's' : '');
+        } else if (type === 'rate') {
+            return value.toFixed(1) + '%';
+        }
+        return value;
+    }
+    
+    // Mise à jour des bulles des sliders
+    function updateSliderBubbles() {
+        amountRange.style.setProperty('--value', formatSliderValue(amountRange.value, 'amount'));
+        durationRange.style.setProperty('--value', formatSliderValue(durationRange.value, 'duration'));
+        rateRange.style.setProperty('--value', formatSliderValue(parseFloat(rateRange.value), 'rate'));
+    }
     
     // Synchronisation des sliders et inputs
-    amountRange.addEventListener('input', () => {
+    function syncInputs() {
         amountInput.value = amountRange.value;
-        calculateRealTime();
-    });
-    
-    amountInput.addEventListener('input', () => {
-        amountRange.value = amountInput.value;
-        calculateRealTime();
-    });
-    
-    durationRange.addEventListener('input', () => {
         durationInput.value = durationRange.value;
-        calculateRealTime();
-    });
-    
-    durationInput.addEventListener('input', () => {
-        durationRange.value = durationInput.value;
-        calculateRealTime();
-    });
-    
-    rateRange.addEventListener('input', () => {
         rateInput.value = rateRange.value;
         calculateRealTime();
+    }
+    
+    // Écouteurs d'événements
+    amountRange.addEventListener('input', syncInputs);
+    amountInput.addEventListener('input', function() {
+        let value = Math.min(Math.max(this.value, minAmount), maxAmount);
+        this.value = value;
+        amountRange.value = value;
+        calculateRealTime();
     });
     
-    rateInput.addEventListener('input', () => {
-        rateRange.value = rateInput.value;
+    durationRange.addEventListener('input', syncInputs);
+    durationInput.addEventListener('input', function() {
+        let value = Math.min(Math.max(this.value, minDuration), maxDuration);
+        this.value = value;
+        durationRange.value = value;
         calculateRealTime();
+    });
+    
+    rateRange.addEventListener('input', syncInputs);
+    rateInput.addEventListener('input', function() {
+        let value = Math.min(Math.max(this.value, minRate), maxRate);
+        this.value = value;
+        rateRange.value = value;
+        calculateRealTime();
+    });
+    
+    loanTypeSelect.addEventListener('change', function() {
+        // Ajustement automatique des taux selon le type de prêt
+        const loanType = this.value;
+        let suggestedRate = 4.5; // Taux par défaut
+        
+        switch(loanType) {
+            case 'mortgage': suggestedRate = 3.5; break;
+            case 'auto': suggestedRate = 5.0; break;
+            case 'professional': suggestedRate = 6.0; break;
+            case 'student': suggestedRate = 2.0; break;
+        }
+        
+        rateInput.value = suggestedRate;
+        rateRange.value = suggestedRate;
+        calculateRealTime();
+        updateSliderBubbles();
     });
     
     // Calcul en temps réel
     function calculateRealTime() {
         const amount = parseFloat(amountInput.value) || 0;
         const duration = parseInt(durationInput.value) || 1;
-        const rate = parseFloat(rateInput.value) || 0.1;
+        const annualRate = parseFloat(rateInput.value) || 0.1;
+        const loanType = loanTypeSelect.value;
         
-        if (amount < 1000 || amount > 1000000 || duration < 1 || duration > 30 || rate < 0.1 || rate > 20) {
+        if (amount < minAmount || amount > maxAmount || 
+            duration < minDuration || duration > maxDuration || 
+            annualRate < minRate || annualRate > maxRate) {
             return;
         }
         
-        const monthlyRate = rate / 100 / 12;
+        const monthlyRate = annualRate / 100 / 12;
         const term = duration * 12;
         
         let monthlyPayment;
@@ -66,15 +117,23 @@ document.addEventListener('DOMContentLoaded', function() {
             monthlyPayment = (amount * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -term));
         }
         
-        const totalPayment = monthlyPayment * term;
-        const totalInterest = totalPayment - amount;
+        // Estimation de l'assurance (0.3% par défaut)
+        const insuranceRate = 0.3;
+        const monthlyInsurance = (amount * insuranceRate) / 12 / 100;
+        const totalMonthlyPayment = monthlyPayment + monthlyInsurance;
+        
+        const totalPayment = totalMonthlyPayment * term;
+        const totalInterest = monthlyPayment * term - amount;
+        const totalInsurance = monthlyInsurance * term;
         
         // Afficher les résultats en temps réel
-        document.getElementById('rtMonthlyPayment').textContent = formatCurrency(monthlyPayment);
+        document.getElementById('rtMonthlyPayment').textContent = formatCurrency(totalMonthlyPayment);
         document.getElementById('rtTotalInterest').textContent = formatCurrency(totalInterest);
         document.getElementById('rtTotalPayment').textContent = formatCurrency(totalPayment);
+        document.getElementById('rtInsurance').textContent = formatCurrency(totalInsurance);
         
         realTimeResults.style.display = 'block';
+        updateSliderBubbles();
     }
     
     // Soumission du formulaire
@@ -117,12 +176,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     behavior: 'smooth'
                 });
             } else {
-                throw new Error('Calcul échoué');
+                throw new Error(data.message || 'Calcul échoué');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Une erreur est survenue. Veuillez vérifier vos données.');
+            showAlert('Une erreur est survenue. Veuillez vérifier vos données.', 'danger');
         })
         .finally(() => {
             submitText.textContent = 'Calculer mon prêt';
@@ -133,8 +192,17 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Afficher les résultats détaillés
     function displayResults(data) {
+        document.getElementById('loanTypeResult').textContent = 
+            document.querySelector(`#loanType option[value="${data.loan_type}"]`).textContent;
+        document.getElementById('amountResult').textContent = formatCurrency(data.amount);
+        document.getElementById('durationResult').textContent = data.duration + ' an' + (data.duration > 1 ? 's' : '');
+        document.getElementById('rateResult').textContent = data.annual_rate.toFixed(2) + '%';
+        
         document.getElementById('monthlyPayment').textContent = formatCurrency(data.monthly_payment);
+        document.getElementById('monthlyPaymentWithoutInsurance').textContent = formatCurrency(data.monthly_payment_without_insurance);
+        document.getElementById('monthlyInsurance').textContent = formatCurrency(data.monthly_insurance);
         document.getElementById('totalInterest').textContent = formatCurrency(data.total_interest);
+        document.getElementById('totalInsurance').textContent = formatCurrency(data.total_insurance);
         document.getElementById('totalPayment').textContent = formatCurrency(data.total_payment);
         
         const tableBody = document.getElementById('amortizationTable');
@@ -159,6 +227,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <td>${formatCurrency(item.balance)}</td>
                 <td>${formatCurrency(item.interest)}</td>
                 <td>${formatCurrency(item.principal)}</td>
+                <td>${formatCurrency(item.insurance)}</td>
                 <td>${formatCurrency(item.payment)}</td>
             `;
             tableBody.appendChild(row);
@@ -175,11 +244,46 @@ document.addEventListener('DOMContentLoaded', function() {
         }).format(value);
     }
     
+    // Affichage des messages d'alerte
+    function showAlert(message, type = 'success') {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.role = 'alert';
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        
+        const container = document.querySelector('.simulator-form .container');
+        container.prepend(alertDiv);
+        
+        setTimeout(() => {
+            alertDiv.classList.remove('show');
+            setTimeout(() => alertDiv.remove(), 150);
+        }, 5000);
+    }
+    
     // Bouton d'impression
     document.getElementById('printResults')?.addEventListener('click', function() {
+        const printContents = resultsSection.innerHTML;
+        const originalContents = document.body.innerHTML;
+        
+        document.body.innerHTML = `
+            <div class="container mt-5">
+                <h2 class="text-center mb-4">Résultats de votre simulation de prêt</h2>
+                ${printContents}
+                <div class="text-center mt-4 text-muted">
+                    Simulation générée le ${new Date().toLocaleDateString('fr-FR')}
+                </div>
+            </div>
+        `;
+        
         window.print();
+        document.body.innerHTML = originalContents;
+        window.location.reload();
     });
     
-    // Calcul initial
+    // Initialisation
+    updateSliderBubbles();
     calculateRealTime();
 });

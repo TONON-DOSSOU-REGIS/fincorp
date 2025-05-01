@@ -140,7 +140,7 @@
                                 <img src="images/i7.jpg" class="img-fluid rounded-circle h-70 w-70" alt="Client">
                             </div>
                             <div>
-                                <h6 class="mb-0">Marie D.</h6>
+                                <h6 class="mb-0">Marie Durant.</h6>
                                 <small class="text-muted">Prêt immobilier</small>
                             </div>
                         </div>
@@ -163,7 +163,7 @@
                                 <img src="images/i21.png" class="img-fluid rounded-circle h-70 w-70" alt="Client">
                             </div>
                             <div>
-                                <h6 class="mb-0">Jean P.</h6>
+                                <h6 class="mb-0">Jeanne Pinpond.</h6>
                                 <small class="text-muted">Prêt professionnel</small>
                             </div>
                         </div>
@@ -186,7 +186,7 @@
                                 <img src="images/i16.png" class="img-fluid rounded-circle h-100 w-100" alt="Client">
                             </div>
                             <div>
-                                <h6 class="mb-0">Sophie L.</h6>
+                                <h6 class="mb-0">Sophie Lusane.</h6>
                                 <small class="text-muted">Prêt personnel</small>
                             </div>
                         </div>
